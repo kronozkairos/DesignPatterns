@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrones de comportamiento I</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="patrones-styles.css">
+</head>
+<body>
+
+<div class="crumb"><a href="patrones-index.html">← Catálogo completo</a></div>
+
+<header>
+  <span class="kicker">FAMILIA 3 DE 3 — PARTE I · 5 PATRONES</span>
+  <h1>Patrones de comportamiento (I)</h1>
+  <p>Resuelven cómo se comunican los objetos y cómo reparten responsabilidades entre ellos.</p>
+</header>
+
+<nav class="toc">
+  <a href="#chain"><span class="num">01</span>Chain of Resp.</a>
+  <a href="#command"><span class="num">02</span>Command</a>
+  <a href="#iterator"><span class="num">03</span>Iterator</a>
+  <a href="#mediator"><span class="num">04</span>Mediator</a>
+  <a href="#memento"><span class="num">05</span>Memento</a>
+</nav>
+
+<main>
+
+  <section class="pattern" id="chain">
+    <div class="pattern-head">
+      <span class="pattern-index">01</span>
+      <h2>Chain of Responsibility</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: una solicitud debe pasar por varios manejadores posibles, hasta que uno la resuelva.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Al recibir daño hay que revisar primero el escudo, luego la armadura, y por último la vida — en ese orden. El código es un bloque gigante de <code>if</code> anidados que crece con cada nueva capa de defensa.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Cada defensa es un eslabón: absorbe lo que puede y pasa el resto al siguiente eslabón de la cadena.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">cadenaDeDaño.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Escudo</span> {
+  <span class="tok-kw">constructor</span>(siguiente) { <span class="tok-kw">this</span>.siguiente = siguiente; <span class="tok-kw">this</span>.puntos = <span class="tok-kw">20</span>; }
+  <span class="tok-fn">recibir</span>(daño) {
+    <span class="tok-kw">const</span> absorbido = Math.<span class="tok-fn">min</span>(daño, <span class="tok-kw">this</span>.puntos);
+    <span class="tok-kw">this</span>.puntos -= absorbido;
+    <span class="tok-kw">const</span> restante = daño - absorbido;
+    <span class="tok-kw">if</span> (restante > <span class="tok-kw">0</span> && <span class="tok-kw">this</span>.siguiente) <span class="tok-kw">this</span>.siguiente.<span class="tok-fn">recibir</span>(restante);
+  }
+}
+
+<span class="tok-com">// Escudo -> Armadura -> Vida, cada uno solo se preocupa de su parte</span>
+<span class="tok-kw">const</span> cadena = <span class="tok-kw">new</span> Escudo(<span class="tok-kw">new</span> Armadura(<span class="tok-kw">new</span> Vida()));
+cadena.<span class="tok-fn">recibir</span>(<span class="tok-kw">35</span>);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Añadir una defensa nueva es insertar un eslabón, no reescribir un <code>if</code> gigante.</div>
+      <div><strong>Otro uso común</strong>Validación de formularios: cada regla revisa el dato y pasa al siguiente validador.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="command">
+    <div class="pattern-head">
+      <span class="pattern-index">02</span>
+      <h2>Command</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas guardar, encolar o deshacer acciones, no solo ejecutarlas al momento.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Quieres un botón de "deshacer" en tu editor de niveles, pero cada acción (mover, borrar, pintar) está escrita como una llamada directa a una función. No hay forma de revertirla después.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Cada acción se convierte en un objeto con <code>ejecutar()</code> y <code>deshacer()</code>. Se guarda en una pila para poder revertirla.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">comandoMover.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">ComandoMover</span> {
+  <span class="tok-kw">constructor</span>(objeto, delta) { <span class="tok-kw">this</span>.objeto = objeto; <span class="tok-kw">this</span>.delta = delta; }
+  <span class="tok-fn">ejecutar</span>() { <span class="tok-kw">this</span>.objeto.posicion += <span class="tok-kw">this</span>.delta; }
+  <span class="tok-fn">deshacer</span>()  { <span class="tok-kw">this</span>.objeto.posicion -= <span class="tok-kw">this</span>.delta; }
+}
+
+<span class="tok-kw">const</span> historial = [];
+<span class="tok-kw">function</span> <span class="tok-fn">ejecutarComando</span>(cmd) { cmd.<span class="tok-fn">ejecutar</span>(); historial.push(cmd); }
+<span class="tok-kw">function</span> <span class="tok-fn">deshacerUltimo</span>()      { historial.pop()?.<span class="tok-fn">deshacer</span>(); }</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Deshacer, rehacer y encolar acciones salen "gratis" una vez que son objetos.</div>
+      <div><strong>Otro uso</strong>Reasignar controles (input remapping): cada tecla dispara un Comando, no una función fija.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="iterator">
+    <div class="pattern-head">
+      <span class="pattern-index">03</span>
+      <h2>Iterator</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas recorrer una colección sin que el código que la recorre dependa de cómo está construida por dentro.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tu inventario a veces es un array y a veces un árbol de categorías. El código que lo recorre está escrito para arrays y se rompe si cambias la estructura interna.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>La colección expone un recorrido uniforme (<code>siguiente()</code>, <code>hayMas()</code>), sin importar si por dentro es un array, un árbol o una lista enlazada.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">inventarioIterador.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Inventario</span> {
+  <span class="tok-kw">constructor</span>(items) { <span class="tok-kw">this</span>.items = items; }
+
+  [Symbol.iterator]() {
+    <span class="tok-kw">let</span> i = <span class="tok-kw">0</span>;
+    <span class="tok-kw">const</span> items = <span class="tok-kw">this</span>.items;
+    <span class="tok-kw">return</span> {
+      <span class="tok-fn">next</span>: () => i < items.length
+        ? { value: items[i++], done: <span class="tok-kw">false</span> }
+        : { value: <span class="tok-kw">undefined</span>, done: <span class="tok-kw">true</span> }
+    };
+  }
+}
+
+<span class="tok-com">// El código cliente no sabe (ni le importa) cómo se guardan los items:</span>
+<span class="tok-kw">for</span> (<span class="tok-kw">const</span> item <span class="tok-kw">of new</span> Inventario(misItems)) { <span class="tok-fn">mostrar</span>(item); }</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Ya lo usas</strong>El <code>for...of</code> de JS y <code>foreach</code> de C# existen gracias a este patrón.</div>
+      <div><strong>Beneficio</strong>Cambiar la estructura interna de la colección no obliga a tocar el código que la recorre.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="mediator">
+    <div class="pattern-head">
+      <span class="pattern-index">04</span>
+      <h2>Mediator</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: varios objetos se comunican directamente entre sí, formando una maraña de referencias cruzadas.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>En un formulario de configuración, el checkbox llama al dropdown, el dropdown llama al botón, el botón llama de vuelta al checkbox. Cada campo nuevo obliga a conectar referencias con todos los demás.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Un mediador recibe los eventos de cada campo y decide cómo reaccionan los demás. Los campos ya no se conocen entre sí.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">mediadorFormulario.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">MediadorFormulario</span> {
+  <span class="tok-fn">notificar</span>(origen, evento) {
+    <span class="tok-kw">if</span> (origen === <span class="tok-str">"checkboxAvanzado"</span> && evento === <span class="tok-str">"activado"</span>) {
+      <span class="tok-kw">this</span>.dropdown.<span class="tok-fn">habilitar</span>();
+      <span class="tok-kw">this</span>.boton.<span class="tok-fn">deshabilitar</span>();
+    }
+  }
+}
+
+<span class="tok-com">// Cada campo solo conoce al mediador, nunca a los demás campos:</span>
+checkbox.alCambiar = () => mediador.<span class="tok-fn">notificar</span>(<span class="tok-str">"checkboxAvanzado"</span>, <span class="tok-str">"activado"</span>);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Agregar un campo nuevo significa enseñarle al mediador, no editar N campos existentes.</div>
+      <div><strong>Diferencia con Observer</strong>Observer es un anuncio abierto a quien quiera escuchar; Mediator centraliza la lógica de "quién reacciona a qué" en un solo lugar.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="memento">
+    <div class="pattern-head">
+      <span class="pattern-index">05</span>
+      <h2>Memento</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas guardar y restaurar el estado anterior de un objeto sin exponer sus datos internos al resto del código.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Quieres un "guardado rápido" (quicksave), pero el estado del jugador tiene campos que deberían ser privados. Exponerlos todos para poder guardarlos rompe el encapsulamiento de la clase.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>El propio objeto genera una "foto" (memento) de sí mismo. Un gestor externo la guarda sin mirar adentro, y luego se la devuelve al objeto para restaurarse.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">jugadorMemento.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Jugador</span> {
+  <span class="tok-kw">constructor</span>() { <span class="tok-kw">this</span>.vida = <span class="tok-kw">100</span>; <span class="tok-kw">this</span>.posicion = { x: <span class="tok-kw">0</span>, y: <span class="tok-kw">0</span> }; }
+
+  <span class="tok-fn">guardar</span>() {
+    <span class="tok-kw">return</span> { vida: <span class="tok-kw">this</span>.vida, posicion: { ...<span class="tok-kw">this</span>.posicion } }; <span class="tok-com">// el "memento"</span>
+  }
+
+  <span class="tok-fn">restaurar</span>(memento) {
+    <span class="tok-kw">this</span>.vida = memento.vida;
+    <span class="tok-kw">this</span>.posicion = memento.posicion;
+  }
+}
+
+<span class="tok-kw">const</span> checkpoint = jugador.<span class="tok-fn">guardar</span>();
+<span class="tok-com">// ...el jugador muere o algo sale mal...</span>
+jugador.<span class="tok-fn">restaurar</span>(checkpoint);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>El sistema de guardado no necesita entender la estructura interna del jugador.</div>
+      <div><strong>En Unity</strong>Base conceptual de cualquier sistema de checkpoints o guardado en JSON.</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="pager">
+  <a href="patrones-estructurales.html">← Estructurales</a>
+  <a class="next" href="patrones-comportamiento-2.html">Siguiente: Comportamiento II →</a>
+</div>
+
+<footer>
+  Referencia: refactoring.guru/design-patterns/behavioral-patterns
+</footer>
+
+</body>
+</html>

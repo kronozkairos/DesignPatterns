@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrones de comportamiento II</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="patrones-styles.css">
+</head>
+<body>
+
+<div class="crumb"><a href="patrones-index.html">← Catálogo completo</a></div>
+
+<header>
+  <span class="kicker">FAMILIA 3 DE 3 — PARTE II · 5 PATRONES</span>
+  <h1>Patrones de comportamiento (II)</h1>
+  <p>Más formas de repartir responsabilidades y hacer intercambiables los algoritmos entre objetos.</p>
+</header>
+
+<nav class="toc">
+  <a href="#observer"><span class="num">01</span>Observer</a>
+  <a href="#state"><span class="num">02</span>State</a>
+  <a href="#strategy"><span class="num">03</span>Strategy</a>
+  <a href="#template"><span class="num">04</span>Template Method</a>
+  <a href="#visitor"><span class="num">05</span>Visitor</a>
+</nav>
+
+<main>
+
+  <section class="pattern" id="observer">
+    <div class="pattern-head">
+      <span class="pattern-index">01</span>
+      <h2>Observer</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: varios sistemas deben reaccionar a un evento sin conocerse entre sí.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Cuando el jugador pierde vida, hay que actualizar la UI, reproducir sonido y revisar si murió. El componente <code>Vida</code> termina llamando directamente a los otros tres, acoplando todo.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p><code>Vida</code> solo anuncia "cambié", sin saber quién escucha. Cada sistema se suscribe por su cuenta.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">vida.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Vida</span> {
+  <span class="tok-kw">constructor</span>() {
+    <span class="tok-kw">this</span>.valor = <span class="tok-kw">100</span>;
+    <span class="tok-kw">this</span>.escuchas = [];
+  }
+
+  <span class="tok-fn">alRecibirDaño</span>(cb) { <span class="tok-kw">this</span>.escuchas.push(cb); }
+
+  <span class="tok-fn">recibirDaño</span>(cantidad) {
+    <span class="tok-kw">this</span>.valor -= cantidad;
+    <span class="tok-kw">this</span>.escuchas.forEach(cb => cb(<span class="tok-kw">this</span>.valor));
+  }
+}
+
+<span class="tok-com">// Cada sistema se suscribe sin que Vida lo sepa:</span>
+vida.<span class="tok-fn">alRecibirDaño</span>(v => ui.<span class="tok-fn">actualizarBarra</span>(v));
+vida.<span class="tok-fn">alRecibirDaño</span>(v => audio.<span class="tok-fn">reproducir</span>(<span class="tok-str">"golpe"</span>));
+vida.<span class="tok-fn">alRecibirDaño</span>(v => { <span class="tok-kw">if</span> (v <= <span class="tok-kw">0</span>) juego.<span class="tok-fn">terminar</span>(); });</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Ya lo usas</strong><code>addEventListener</code> en JS y <code>UnityEvent</code>/<code>Action</code> en Unity son Observer.</div>
+      <div><strong>Riesgo</strong>Si nadie se "desuscribe", puedes acumular escuchas fantasma (memory leak).</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="state">
+    <div class="pattern-head">
+      <span class="pattern-index">02</span>
+      <h2>State</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: el comportamiento de un objeto cambia según una condición interna, y los <code>if/else</code> se multiplican.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>El personaje tiene <code>if (estado === "idle") ... else if (estado === "corriendo") ... else if (estado === "saltando")...</code> repetido en <em>Update</em>, en animación y en input. Cada estado nuevo multiplica el desorden.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Cada estado es un objeto con su propio comportamiento. El personaje solo delega al estado actual.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">estados.js</span>
+      <pre><span class="tok-kw">const</span> EstadoIdle = {
+  <span class="tok-fn">actualizar</span>(personaje) {
+    <span class="tok-kw">if</span> (personaje.input.moviendose) personaje.<span class="tok-fn">cambiarEstado</span>(EstadoCorrer);
+  }
+};
+
+<span class="tok-kw">const</span> EstadoCorrer = {
+  <span class="tok-fn">actualizar</span>(personaje) {
+    personaje.<span class="tok-fn">mover</span>();
+    <span class="tok-kw">if</span> (personaje.input.salto) personaje.<span class="tok-fn">cambiarEstado</span>(EstadoSaltar);
+  }
+};
+
+<span class="tok-com">// El personaje no sabe qué estado es, solo delega:</span>
+personaje.estadoActual.<span class="tok-fn">actualizar</span>(personaje);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Añadir "Agacharse" es crear un objeto nuevo, no editar los existentes.</div>
+      <div><strong>En Unity</strong>Los Animator Controllers son esencialmente máquinas de estado visuales de este mismo patrón.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="strategy">
+    <div class="pattern-head">
+      <span class="pattern-index">03</span>
+      <h2>Strategy</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas intercambiar un algoritmo en tiempo real sin duplicar el resto del código.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tres tipos de enemigos comparten el 90% del código (moverse, atacar, morir), pero cada uno decide diferente a quién perseguir. Terminas con tres clases casi idénticas copiadas y pegadas.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>La clase base es una sola. El "cómo perseguir" se le inyecta como una pieza intercambiable.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">enemigo.js</span>
+      <pre><span class="tok-kw">const</span> perseguirDeCerca = objetivo => objetivo.posicion;
+<span class="tok-kw">const</span> perseguirADistancia = objetivo => objetivo.posicion.<span class="tok-fn">alejar</span>(<span class="tok-kw">5</span>);
+
+<span class="tok-kw">class</span> <span class="tok-fn">Enemigo</span> {
+  <span class="tok-kw">constructor</span>(estrategiaPersecucion) {
+    <span class="tok-kw">this</span>.perseguir = estrategiaPersecucion; <span class="tok-com">// la pieza intercambiable</span>
+  }
+
+  <span class="tok-fn">actualizar</span>(jugador) {
+    <span class="tok-kw">const</span> destino = <span class="tok-kw">this</span>.perseguir(jugador);
+    <span class="tok-kw">this</span>.<span class="tok-fn">moverHacia</span>(destino);
+  }
+}
+
+<span class="tok-kw">const</span> goblin  = <span class="tok-kw">new</span> Enemigo(perseguirDeCerca);
+<span class="tok-kw">const</span> arquero = <span class="tok-kw">new</span> Enemigo(perseguirADistancia);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Diferencia con State</strong>State cambia solo, según condiciones internas. Strategy lo eliges tú al crear el objeto (o lo cambias por reglas externas).</div>
+      <div><strong>En Unity</strong>Útil para IA: inyectar distintos comportamientos sin heredar de clases distintas.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="template">
+    <div class="pattern-head">
+      <span class="pattern-index">04</span>
+      <h2>Template Method</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: varias clases siguen los mismos pasos, en el mismo orden, pero uno o dos pasos cambian según el caso.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>"Cargar nivel" siempre sigue 4 pasos: leer archivo, instanciar objetos, colocar al jugador, iniciar cámara. Cada tipo de nivel cambia solo el paso 2, pero terminas copiando los 4 pasos completos en cada clase.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Una clase base fija el orden de los 4 pasos. Las subclases solo sobreescriben el paso que realmente cambia.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">cargadorNivel.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">CargadorNivel</span> {
+  <span class="tok-fn">cargar</span>() { <span class="tok-com">// el orden fijo, el "template"</span>
+    <span class="tok-kw">this</span>.<span class="tok-fn">leerArchivo</span>();
+    <span class="tok-kw">this</span>.<span class="tok-fn">instanciarObjetos</span>(); <span class="tok-com">// paso que varía</span>
+    <span class="tok-kw">this</span>.<span class="tok-fn">colocarJugador</span>();
+    <span class="tok-kw">this</span>.<span class="tok-fn">iniciarCamara</span>();
+  }
+  <span class="tok-fn">leerArchivo</span>()       { <span class="tok-com">/* igual para todos */</span> }
+  <span class="tok-fn">colocarJugador</span>()    { <span class="tok-com">/* igual para todos */</span> }
+  <span class="tok-fn">iniciarCamara</span>()     { <span class="tok-com">/* igual para todos */</span> }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">NivelJefe</span> <span class="tok-kw">extends</span> CargadorNivel {
+  <span class="tok-fn">instanciarObjetos</span>() { <span class="tok-fn">spawnJefeConIntro</span>(); } <span class="tok-com">// solo esto cambia</span>
+}</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Diferencia con Strategy</strong>Strategy reemplaza un algoritmo completo desde afuera; Template Method fija la mayoría de los pasos y solo permite variar algunos, desde adentro (herencia).</div>
+      <div><strong>En Unity</strong>Los métodos <code>Awake/Start/Update</code> de MonoBehaviour siguen esta misma idea: Unity fija cuándo se llaman, tú rellenas el contenido.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="visitor">
+    <div class="pattern-head">
+      <span class="pattern-index">05</span>
+      <h2>Visitor</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas agregar una operación nueva a un grupo de clases ya existentes, sin modificarlas ni arriesgar romperlas.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tienes 8 tipos de objetos del mapa (árbol, roca, cofre...) y necesitas agregar "calcular sombra proyectada" a todos ellos, pero modificar cada una de las 8 clases arriesga romper código que ya funciona.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Un objeto "visitante" contiene la nueva operación y sabe cómo aplicarse a cada tipo. Las clases originales solo necesitan aceptar la visita.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">visitanteSombra.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Arbol</span> {
+  <span class="tok-fn">aceptar</span>(visitante) { visitante.<span class="tok-fn">visitarArbol</span>(<span class="tok-kw">this</span>); }
+}
+<span class="tok-kw">class</span> <span class="tok-fn">Roca</span> {
+  <span class="tok-fn">aceptar</span>(visitante) { visitante.<span class="tok-fn">visitarRoca</span>(<span class="tok-kw">this</span>); }
+}
+
+<span class="tok-kw">const</span> visitanteSombra = {
+  <span class="tok-fn">visitarArbol</span>(a) { <span class="tok-kw">return</span> a.altura * <span class="tok-kw">1.5</span>; },
+  <span class="tok-fn">visitarRoca</span>(r)  { <span class="tok-kw">return</span> r.radio * <span class="tok-kw">0.8</span>; },
+};
+
+<span class="tok-com">// Cada objeto del mapa acepta al mismo visitante, sin conocerlo antes:</span>
+objetosDelMapa.forEach(o => o.<span class="tok-fn">aceptar</span>(visitanteSombra));</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>La operación nueva vive en un solo archivo, no repartida en 8 clases.</div>
+      <div><strong>Costo</strong>Si agregas un tipo de objeto nuevo, hay que actualizar el visitante — es el patrón más pesado de esta lista, resérvalo para operaciones que realmente cruzan muchos tipos.</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="pager">
+  <a href="patrones-comportamiento-1.html">← Comportamiento I</a>
+  <a class="next" href="patrones-index.html">Volver al catálogo →</a>
+</div>
+
+<footer>
+  Referencia: refactoring.guru/design-patterns/behavioral-patterns
+</footer>
+
+</body>
+</html>

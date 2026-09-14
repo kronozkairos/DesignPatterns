@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrones creacionales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="patrones-styles.css">
+</head>
+<body>
+
+<div class="crumb"><a href="patrones-index.html">← Catálogo completo</a></div>
+
+<header>
+  <span class="kicker">FAMILIA 1 DE 3 — 5 PATRONES</span>
+  <h1>Patrones creacionales</h1>
+  <p>Resuelven un mismo problema de fondo: cómo crear objetos sin que el código quede pegado a clases concretas.</p>
+</header>
+
+<nav class="toc">
+  <a href="#factory-method"><span class="num">01</span>Factory Method</a>
+  <a href="#abstract-factory"><span class="num">02</span>Abstract Factory</a>
+  <a href="#builder"><span class="num">03</span>Builder</a>
+  <a href="#prototype"><span class="num">04</span>Prototype</a>
+  <a href="#singleton"><span class="num">05</span>Singleton</a>
+</nav>
+
+<main>
+
+  <section class="pattern" id="factory-method">
+    <div class="pattern-head">
+      <span class="pattern-index">01</span>
+      <h2>Factory Method</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: una clase base necesita crear objetos, pero quieres que sus subclases decidan qué tipo exacto crear.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tu clase <code>Nivel</code> genera enemigos con <code>new Goblin()</code> directamente. Al agregar "NivelDesierto" con otro enemigo, terminas copiando toda la clase solo para cambiar esa línea.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>La clase base declara un método "crear enemigo" sin implementarlo. Cada subclase de nivel lo sobreescribe con su propio enemigo.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">nivel.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Nivel</span> {
+  <span class="tok-fn">crearEnemigo</span>() {
+    <span class="tok-kw">throw new</span> Error(<span class="tok-str">"Las subclases deben implementar esto"</span>);
+  }
+  <span class="tok-fn">poblar</span>() {
+    <span class="tok-kw">return</span> [<span class="tok-kw">this</span>.<span class="tok-fn">crearEnemigo</span>(), <span class="tok-kw">this</span>.<span class="tok-fn">crearEnemigo</span>()];
+  }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">NivelDesierto</span> <span class="tok-kw">extends</span> Nivel {
+  <span class="tok-fn">crearEnemigo</span>() { <span class="tok-kw">return new</span> Escorpion(); }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">NivelBosque</span> <span class="tok-kw">extends</span> Nivel {
+  <span class="tok-fn">crearEnemigo</span>() { <span class="tok-kw">return new</span> Goblin(); }
+}</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Diferencia con Factory simple</strong>Una función fábrica normal centraliza el <code>switch</code>; Factory Method lo reparte entre subclases especializadas.</div>
+      <div><strong>En Unity</strong>Útil en clases base de "generador de oleadas" por bioma.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="abstract-factory">
+    <div class="pattern-head">
+      <span class="pattern-index">02</span>
+      <h2>Abstract Factory</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas crear familias completas de objetos relacionados, y no pueden mezclarse entre familias.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tu juego tiene temas visuales (Medieval, SciFi). Cada uno necesita su propio botón, fondo e ícono. Si el código arma la UI pieza por pieza, es fácil mezclar un botón medieval con un fondo de SciFi por error.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Una fábrica por tema produce las tres piezas juntas, garantizando que siempre combinen entre sí.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">fabricasUI.js</span>
+      <pre><span class="tok-kw">const</span> fabricaMedieval = {
+  <span class="tok-fn">crearBoton</span>: () => <span class="tok-kw">new</span> BotonMedieval(),
+  <span class="tok-fn">crearFondo</span>:  () => <span class="tok-kw">new</span> FondoMedieval(),
+  <span class="tok-fn">crearIcono</span>:  () => <span class="tok-kw">new</span> IconoMedieval(),
+};
+
+<span class="tok-kw">const</span> fabricaSciFi = {
+  <span class="tok-fn">crearBoton</span>: () => <span class="tok-kw">new</span> BotonSciFi(),
+  <span class="tok-fn">crearFondo</span>:  () => <span class="tok-kw">new</span> FondoSciFi(),
+  <span class="tok-fn">crearIcono</span>:  () => <span class="tok-kw">new</span> IconoSciFi(),
+};
+
+<span class="tok-com">// El menú solo pide "la fábrica del tema actual", nunca mezcla:</span>
+<span class="tok-kw">function</span> <span class="tok-fn">armarMenu</span>(fabrica) {
+  <span class="tok-kw">return</span> [fabrica.<span class="tok-fn">crearFondo</span>(), fabrica.<span class="tok-fn">crearBoton</span>(), fabrica.<span class="tok-fn">crearIcono</span>()];
+}</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Diferencia con Factory Method</strong>Factory Method crea un tipo de objeto; Abstract Factory crea una familia completa y coherente.</div>
+      <div><strong>Ejemplo típico</strong>Skins/temas completos, o assets por plataforma (PC vs. móvil).</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="builder">
+    <div class="pattern-head">
+      <span class="pattern-index">03</span>
+      <h2>Builder</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: un objeto se arma con muchos parámetros opcionales y el constructor se vuelve ilegible.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Un personaje tiene armadura, arma, mascota, título y habilidades — todos opcionales. Un constructor de 8 parámetros posicionales es imposible de leer y fácil de usar en el orden equivocado.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Un objeto "constructor" arma la pieza por pieza, con nombres claros, y entrega el resultado al final.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">personajeBuilder.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">PersonajeBuilder</span> {
+  <span class="tok-kw">constructor</span>() { <span class="tok-kw">this</span>.personaje = { habilidades: [] }; }
+
+  <span class="tok-fn">conArma</span>(arma)       { <span class="tok-kw">this</span>.personaje.arma = arma; <span class="tok-kw">return this</span>; }
+  <span class="tok-fn">conArmadura</span>(a)      { <span class="tok-kw">this</span>.personaje.armadura = a; <span class="tok-kw">return this</span>; }
+  <span class="tok-fn">conHabilidad</span>(h)     { <span class="tok-kw">this</span>.personaje.habilidades.push(h); <span class="tok-kw">return this</span>; }
+  <span class="tok-fn">construir</span>()         { <span class="tok-kw">return this</span>.personaje; }
+}
+
+<span class="tok-kw">const</span> heroe = <span class="tok-kw">new</span> PersonajeBuilder()
+  .<span class="tok-fn">conArma</span>(<span class="tok-str">"espada"</span>)
+  .<span class="tok-fn">conArmadura</span>(<span class="tok-str">"cuero"</span>)
+  .<span class="tok-fn">conHabilidad</span>(<span class="tok-str">"parada"</span>)
+  .<span class="tok-fn">construir</span>();</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Se lee como una receta y solo configuras lo que necesitas, en el orden que quieras.</div>
+      <div><strong>En Unity</strong>Muy usado para configurar <code>ScriptableObject</code> complejos o diálogos con muchas opciones.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="prototype">
+    <div class="pattern-head">
+      <span class="pattern-index">04</span>
+      <h2>Prototype</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: crear un objeto desde cero es costoso o repetitivo, pero ya tienes uno parecido.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Crear un enemigo "Elite" implica copiar a mano 20 propiedades de un enemigo base y ajustar solo 2. Es fácil olvidar una propiedad y que el Elite quede mal configurado.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>El objeto sabe clonarse a sí mismo completo. Luego solo ajustas las diferencias sobre la copia.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">enemigo.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Enemigo</span> {
+  <span class="tok-kw">constructor</span>(datos) { Object.assign(<span class="tok-kw">this</span>, datos); }
+
+  <span class="tok-fn">clonar</span>() {
+    <span class="tok-kw">return new</span> Enemigo({ ...<span class="tok-kw">this</span> }); <span class="tok-com">// copia todas las propiedades actuales</span>
+  }
+}
+
+<span class="tok-kw">const</span> goblinBase = <span class="tok-kw">new</span> Enemigo({ vida: <span class="tok-kw">30</span>, daño: <span class="tok-kw">5</span>, velocidad: <span class="tok-kw">2</span> });
+
+<span class="tok-kw">const</span> goblinElite = goblinBase.<span class="tok-fn">clonar</span>();
+goblinElite.vida *= <span class="tok-kw">3</span>;
+goblinElite.esElite = <span class="tok-kw">true</span>;</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Nunca olvidas una propiedad porque la copia siempre es completa.</div>
+      <div><strong>En Unity</strong>Muy cercano a lo que hace <code>Instantiate()</code> sobre un prefab: clonas una plantilla ya armada.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="singleton">
+    <div class="pattern-head">
+      <span class="pattern-index">05</span>
+      <h2>Singleton</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas exactamente una instancia de algo, accesible desde cualquier parte del código.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tu <code>GameManager</code> guarda el puntaje y el estado de la partida. Varios scripts crean su propia instancia por accidente y el puntaje se descuadra entre "instancias fantasma".</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Una clase controla su propia instancia única y la expone globalmente. Nadie más puede crear otra.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">gameManager.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">GameManager</span> {
+  <span class="tok-kw">static</span> #instancia;
+
+  <span class="tok-kw">constructor</span>() {
+    <span class="tok-kw">if</span> (GameManager.#instancia) {
+      <span class="tok-kw">throw new</span> Error(<span class="tok-str">"Usa GameManager.obtener(), no 'new'"</span>);
+    }
+    <span class="tok-kw">this</span>.puntaje = <span class="tok-kw">0</span>;
+  }
+
+  <span class="tok-kw">static</span> <span class="tok-fn">obtener</span>() {
+    <span class="tok-kw">if</span> (!GameManager.#instancia) {
+      GameManager.#instancia = <span class="tok-kw">new</span> GameManager();
+    }
+    <span class="tok-kw">return</span> GameManager.#instancia;
+  }
+}
+
+<span class="tok-com">// En cualquier archivo:</span>
+GameManager.<span class="tok-fn">obtener</span>().puntaje += <span class="tok-kw">10</span>;</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Riesgo</strong>Abusarlo convierte el código en variables globales disfrazadas. Resérvalo para managers reales (audio, guardado, escenas).</div>
+      <div><strong>En Unity</strong>Mismo patrón con <code>DontDestroyOnLoad</code> para que sobreviva entre escenas.</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="pager">
+  <a href="patrones-index.html">← Catálogo completo</a>
+  <a class="next" href="patrones-estructurales.html">Siguiente: Estructurales →</a>
+</div>
+
+<footer>
+  Referencia: refactoring.guru/design-patterns/creational-patterns
+</footer>
+
+</body>
+</html>

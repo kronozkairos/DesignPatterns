@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrones estructurales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="patrones-styles.css">
+</head>
+<body>
+
+<div class="crumb"><a href="patrones-index.html">← Catálogo completo</a></div>
+
+<header>
+  <span class="kicker">FAMILIA 2 DE 3 — 7 PATRONES</span>
+  <h1>Patrones estructurales</h1>
+  <p>Resuelven cómo combinar clases y objetos en estructuras más grandes, manteniéndolas flexibles y eficientes.</p>
+</header>
+
+<nav class="toc">
+  <a href="#adapter"><span class="num">01</span>Adapter</a>
+  <a href="#bridge"><span class="num">02</span>Bridge</a>
+  <a href="#composite"><span class="num">03</span>Composite</a>
+  <a href="#decorator"><span class="num">04</span>Decorator</a>
+  <a href="#facade"><span class="num">05</span>Facade</a>
+  <a href="#flyweight"><span class="num">06</span>Flyweight</a>
+  <a href="#proxy"><span class="num">07</span>Proxy</a>
+</nav>
+
+<main>
+
+  <section class="pattern" id="adapter">
+    <div class="pattern-head">
+      <span class="pattern-index">01</span>
+      <h2>Adapter</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas conectar dos piezas de código cuyas interfaces no coinciden.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Integras una librería de sonido externa cuyo método se llama <code>playFX(id)</code>, pero todo tu código ya está escrito esperando <code>reproducir(nombre)</code>. Reescribir todo tu código es innecesario.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Una clase intermedia envuelve la librería externa y traduce las llamadas a la interfaz que tu código espera.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">adaptadorAudio.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">AdaptadorAudio</span> {
+  <span class="tok-kw">constructor</span>(libreriaExterna) { <span class="tok-kw">this</span>.lib = libreriaExterna; }
+
+  <span class="tok-fn">reproducir</span>(nombre) {
+    <span class="tok-kw">const</span> id = <span class="tok-fn">mapearNombreAId</span>(nombre); <span class="tok-com">// traduce el vocabulario</span>
+    <span class="tok-kw">this</span>.lib.<span class="tok-fn">playFX</span>(id);
+  }
+}
+
+<span class="tok-com">// El resto del juego nunca sabe que existe la librería externa:</span>
+<span class="tok-kw">const</span> audio = <span class="tok-kw">new</span> AdaptadorAudio(libreriaTerceros);
+audio.<span class="tok-fn">reproducir</span>(<span class="tok-str">"explosion"</span>);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Si cambias de librería de audio, solo reescribes el adaptador.</div>
+      <div><strong>En Unity</strong>Frecuente al integrar SDKs de terceros (anuncios, analíticas, tiendas).</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="bridge">
+    <div class="pattern-head">
+      <span class="pattern-index">02</span>
+      <h2>Bridge</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: tienes dos ejes de variación (por ejemplo "qué es" y "cómo se muestra") y combinarlos en una sola jerarquía de clases explota.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Tienes formas (Círculo, Cuadrado) que deben renderizarse en distintos motores gráficos (2D, 3D). Una clase por cada combinación (CírculoRender2D, CírculoRender3D, CuadradoRender2D...) crece sin control.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>La forma no hereda del renderer: lo recibe como una pieza separada e intercambiable, un "puente" entre los dos ejes.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">forma.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Forma</span> {
+  <span class="tok-kw">constructor</span>(renderer) { <span class="tok-kw">this</span>.renderer = renderer; } <span class="tok-com">// el "puente"</span>
+  <span class="tok-fn">dibujar</span>() { <span class="tok-kw">this</span>.renderer.<span class="tok-fn">dibujarForma</span>(<span class="tok-kw">this</span>); }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">Circulo</span> <span class="tok-kw">extends</span> Forma { }
+<span class="tok-kw">class</span> <span class="tok-fn">Cuadrado</span> <span class="tok-kw">extends</span> Forma { }
+
+<span class="tok-com">// Cualquier forma + cualquier renderer, sin multiplicar clases:</span>
+<span class="tok-kw">const</span> circulo3D = <span class="tok-kw">new</span> Circulo(renderer3D);
+<span class="tok-kw">const</span> cuadrado2D = <span class="tok-kw">new</span> Cuadrado(renderer2D);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Diferencia con Adapter</strong>Adapter conecta interfaces ya existentes que no coinciden; Bridge se diseña desde el inicio para separar dos ejes que van a variar.</div>
+      <div><strong>Ejemplo típico</strong>Separar la lógica de un control (teclado, gamepad, táctil) de la acción que dispara.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="composite">
+    <div class="pattern-head">
+      <span class="pattern-index">03</span>
+      <h2>Composite</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: necesitas tratar un objeto individual y un grupo de esos objetos exactamente igual.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Un inventario tiene ítems sueltos y también "bolsas" que contienen otros ítems (incluso otras bolsas). Calcular el peso total requiere código distinto para cada caso, con recursión manual regada por todos lados.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Ítem y bolsa implementan la misma interfaz. La bolsa simplemente suma el peso de lo que contiene, sin que el resto del código note la diferencia.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">inventario.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Item</span> {
+  <span class="tok-kw">constructor</span>(peso) { <span class="tok-kw">this</span>.peso = peso; }
+  <span class="tok-fn">obtenerPeso</span>() { <span class="tok-kw">return this</span>.peso; }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">Bolsa</span> {
+  <span class="tok-kw">constructor</span>() { <span class="tok-kw">this</span>.contenido = []; }
+  <span class="tok-fn">agregar</span>(item) { <span class="tok-kw">this</span>.contenido.push(item); }
+  <span class="tok-fn">obtenerPeso</span>() {
+    <span class="tok-kw">return this</span>.contenido.reduce((suma, i) => suma + i.<span class="tok-fn">obtenerPeso</span>(), <span class="tok-kw">0</span>);
+  }
+}
+
+<span class="tok-kw">const</span> mochila = <span class="tok-kw">new</span> Bolsa();
+mochila.<span class="tok-fn">agregar</span>(<span class="tok-kw">new</span> Item(<span class="tok-kw">2</span>));
+mochila.<span class="tok-fn">agregar</span>(<span class="tok-kw">new</span> Bolsa()); <span class="tok-com">// una bolsa dentro de otra, sin problema</span></pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>El código que pide "el peso" nunca pregunta si es un ítem o una bolsa.</div>
+      <div><strong>En Unity</strong>Es la misma idea detrás de la jerarquía de <code>Transform</code>: un padre y sus hijos se tratan de forma uniforme.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="decorator">
+    <div class="pattern-head">
+      <span class="pattern-index">04</span>
+      <h2>Decorator</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: quieres añadir comportamiento a un objeto de forma dinámica, sin tocar su clase ni crear una subclase por combinación.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Un arma puede tener fuego, veneno, o ambos combinados. Crear una subclase por cada combinación (ArmaFuego, ArmaVeneno, ArmaFuegoVeneno...) crece exponencialmente con cada efecto nuevo.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Cada efecto envuelve al arma original y añade su parte del daño, sin tocar la clase base. Se pueden apilar libremente.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">armaDecorada.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">ArmaBase</span> {
+  <span class="tok-fn">calcularDaño</span>() { <span class="tok-kw">return</span> <span class="tok-kw">10</span>; }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">ConFuego</span> {
+  <span class="tok-kw">constructor</span>(arma) { <span class="tok-kw">this</span>.arma = arma; }
+  <span class="tok-fn">calcularDaño</span>() { <span class="tok-kw">return this</span>.arma.<span class="tok-fn">calcularDaño</span>() + <span class="tok-kw">5</span>; }
+}
+
+<span class="tok-kw">class</span> <span class="tok-fn">ConVeneno</span> {
+  <span class="tok-kw">constructor</span>(arma) { <span class="tok-kw">this</span>.arma = arma; }
+  <span class="tok-fn">calcularDaño</span>() { <span class="tok-kw">return this</span>.arma.<span class="tok-fn">calcularDaño</span>() + <span class="tok-kw">3</span>; }
+}
+
+<span class="tok-com">// Se combinan envolviendo, sin crear ninguna clase nueva:</span>
+<span class="tok-kw">const</span> espadaLegendaria = <span class="tok-kw">new</span> ConVeneno(<span class="tok-kw">new</span> ConFuego(<span class="tok-kw">new</span> ArmaBase()));</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>N efectos combinables sin N² subclases.</div>
+      <div><strong>En Unity</strong>Similar en espíritu a apilar varios <code>Component</code> sobre el mismo GameObject.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="facade">
+    <div class="pattern-head">
+      <span class="pattern-index">05</span>
+      <h2>Facade</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: un sistema complejo de varias piezas necesita un punto de entrada simple.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Iniciar una partida requiere llamar en orden a 6 subsistemas (audio, red, guardado, UI, física, cámara). Cada script que arranca el juego repite esas 6 llamadas, y si cambia el orden hay que actualizarlas todas.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Una única clase ofrece un método simple que oculta y coordina toda esa complejidad internamente.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">juegoFacade.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">Juego</span> {
+  <span class="tok-kw">static</span> <span class="tok-fn">iniciar</span>() {
+    Audio.<span class="tok-fn">precargar</span>();
+    Red.<span class="tok-fn">conectar</span>();
+    Guardado.<span class="tok-fn">cargarProgreso</span>();
+    UI.<span class="tok-fn">mostrarHUD</span>();
+    Fisica.<span class="tok-fn">activar</span>();
+    Camara.<span class="tok-fn">enfocarJugador</span>();
+  }
+}
+
+<span class="tok-com">// Cualquier script solo necesita esto:</span>
+Juego.<span class="tok-fn">iniciar</span>();</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>El orden y los detalles viven en un solo lugar, no repetidos por todo el proyecto.</div>
+      <div><strong>Nota</strong>No reemplaza a los subsistemas, solo simplifica cómo se usan juntos desde afuera.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="flyweight">
+    <div class="pattern-head">
+      <span class="pattern-index">06</span>
+      <h2>Flyweight</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: tienes muchísimos objetos similares y duplicar sus datos comunes desperdicia memoria.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Un bosque con 10,000 árboles; si cada instancia guarda su propio modelo 3D y textura, estás duplicando los mismos datos pesados 10,000 veces en memoria.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>El modelo y la textura se guardan una sola vez y se comparten. Cada árbol solo guarda lo que sí es único: su posición y escala.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">bosque.js</span>
+      <pre><span class="tok-com">// Datos pesados y compartidos: se cargan UNA sola vez</span>
+<span class="tok-kw">const</span> modeloArbolCompartido = { malla: cargarMalla(), textura: cargarTextura() };
+
+<span class="tok-com">// Cada árbol solo guarda lo que cambia de instancia a instancia</span>
+<span class="tok-kw">class</span> <span class="tok-fn">ArbolInstancia</span> {
+  <span class="tok-kw">constructor</span>(x, y, escala) {
+    <span class="tok-kw">this</span>.x = x; <span class="tok-kw">this</span>.y = y; <span class="tok-kw">this</span>.escala = escala;
+    <span class="tok-kw">this</span>.modelo = modeloArbolCompartido; <span class="tok-com">// referencia, no copia</span>
+  }
+}</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Memoria proporcional a los árboles únicos, no a las 10,000 copias.</div>
+      <div><strong>En Unity</strong>Es la razón de ser de <code>GPU Instancing</code> y los sistemas de partículas: un modelo, miles de instancias baratas.</div>
+    </div>
+  </section>
+
+  <section class="pattern" id="proxy">
+    <div class="pattern-head">
+      <span class="pattern-index">07</span>
+      <h2>Proxy</h2>
+    </div>
+    <p class="use-when">Úsalo cuando: quieres controlar o retrasar el acceso a un objeto costoso, sin que quien lo usa note la diferencia.</p>
+
+    <div class="flow">
+      <div class="flow-box problem">
+        <span class="flow-label">El problema</span>
+        <p>Cargar una textura de 4K es lento. Si la cargas cada vez que el objeto aparece en pantalla, el juego se congela un instante en cada aparición.</p>
+      </div>
+      <div class="flow-arrow"><svg viewBox="0 0 28 14"><path d="M0 7 H24 M18 1 L24 7 L18 13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+      <div class="flow-box solution">
+        <span class="flow-label">La solución</span>
+        <p>Un objeto sustituto (proxy) intercepta las llamadas: carga la textura real solo la primera vez y reutiliza esa copia después.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="file">texturaProxy.js</span>
+      <pre><span class="tok-kw">class</span> <span class="tok-fn">TexturaProxy</span> {
+  <span class="tok-kw">constructor</span>(ruta) { <span class="tok-kw">this</span>.ruta = ruta; <span class="tok-kw">this</span>.texturaReal = <span class="tok-kw">null</span>; }
+
+  <span class="tok-fn">obtener</span>() {
+    <span class="tok-kw">if</span> (!<span class="tok-kw">this</span>.texturaReal) {
+      <span class="tok-kw">this</span>.texturaReal = <span class="tok-fn">cargarTexturaPesada</span>(<span class="tok-kw">this</span>.ruta); <span class="tok-com">// solo la primera vez</span>
+    }
+    <span class="tok-kw">return this</span>.texturaReal;
+  }
+}
+
+<span class="tok-com">// El resto del código lo usa como si fuera la textura real:</span>
+<span class="tok-kw">const</span> textura = <span class="tok-kw">new</span> TexturaProxy(<span class="tok-str">"roca_4k.png"</span>);</pre>
+    </div>
+
+    <div class="notes">
+      <div><strong>Beneficio</strong>Carga perezosa ("lazy loading") transparente para el resto del código.</div>
+      <div><strong>Otros usos</strong>Proxy también sirve para permisos de acceso o para registrar (log) cada llamada a un objeto.</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="pager">
+  <a href="patrones-creacionales.html">← Creacionales</a>
+  <a class="next" href="patrones-comportamiento-1.html">Siguiente: Comportamiento I →</a>
+</div>
+
+<footer>
+  Referencia: refactoring.guru/design-patterns/structural-patterns
+</footer>
+
+</body>
+</html>
